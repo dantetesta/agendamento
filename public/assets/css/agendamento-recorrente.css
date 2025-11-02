@@ -1,0 +1,245 @@
+/**
+ * Agendamento Recorrente - Estilos
+ * Autor: Dante Testa (https://dantetesta.com.br)
+ * Data: 02/11/2025 17:12
+ */
+
+/* Container de recorrência */
+#container_recorrencia {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Checkbox de repetir */
+.checkbox-repetir {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 2px solid #3b82f6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.checkbox-repetir:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.checkbox-repetir input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.checkbox-repetir label {
+    font-weight: 600;
+    color: #1e40af;
+    cursor: pointer;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-repetir label i {
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+/* Dias da semana */
+.dias-semana-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.dia-semana-item {
+    position: relative;
+}
+
+.dia-semana-item input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.dia-semana-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    background: #f3f4f6;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 70px;
+}
+
+.dia-semana-label:hover {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+}
+
+.dia-semana-item input[type="checkbox"]:checked + .dia-semana-label {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: #1d4ed8;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.dia-semana-abrev {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.dia-semana-nome {
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+/* Preview de datas */
+#preview_datas {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Campos de recorrência */
+.campo-recorrencia {
+    transition: all 0.3s ease;
+}
+
+.campo-recorrencia.hidden {
+    display: none;
+}
+
+/* Select de tipo */
+#tipo_recorrencia {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+    padding-right: 40px;
+}
+
+/* Ícones nos labels */
+.label-com-icone {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.label-com-icone i {
+    margin-right: 8px;
+    color: #3b82f6;
+}
+
+/* Input de número (intervalo, dia do mês) */
+input[type="number"].input-recorrencia {
+    text-align: center;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+/* Termina em */
+.termina-opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.termina-opcao {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.termina-opcao:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.termina-opcao input[type="radio"]:checked ~ * {
+    font-weight: 600;
+}
+
+.termina-opcao input[type="radio"]:checked ~ label {
+    color: #3b82f6;
+}
+
+/* Badge de recorrente no calendário */
+.badge-recorrente {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.badge-recorrente i {
+    margin-right: 3px;
+    font-size: 8px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .dias-semana-grid {
+        gap: 6px;
+    }
+    
+    .dia-semana-label {
+        padding: 10px 6px;
+        min-height: 60px;
+    }
+    
+    .dia-semana-abrev {
+        font-size: 12px;
+    }
+    
+    .dia-semana-nome {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dias-semana-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
