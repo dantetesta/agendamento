@@ -41,6 +41,9 @@ $agendamentosHoje = count($agendamentoModel->getByPeriodo(Auth::id(), date('Y-m-
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/pt-br.global.min.js"></script>
     
+    <!-- Agendamento Recorrente -->
+    <link rel="stylesheet" href="/assets/css/agendamento-recorrente.css">
+    
     <style>
         .sidebar {
             transition: transform 0.3s ease-in-out;
@@ -722,9 +725,10 @@ $agendamentosHoje = count($agendamentoModel->getByPeriodo(Auth::id(), date('Y-m-
                     const horario = arg.timeText;
                     const titulo = arg.event.title;
                     const view = arg.view.type;
+                    const isRecorrente = arg.event.extendedProps?.is_recorrente || false;
                     
                     // Debug
-                    console.log('🎨 Evento:', titulo, 'Cor Cliente:', corCliente, 'Tag Serviço:', tagServico?.nome);
+                    console.log('🎨 Evento:', titulo, 'Cor Cliente:', corCliente, 'Tag Serviço:', tagServico?.nome, 'Recorrente:', isRecorrente);
                     
                     // Vista de mês: bolinha do cliente + badge do serviço
                     if (view === 'dayGridMonth') {
@@ -745,6 +749,23 @@ $agendamentosHoje = count($agendamentoModel->getByPeriodo(Auth::id(), date('Y-m-
                             `;
                         }
                         
+                        let badgeRecorrente = '';
+                        if (isRecorrente) {
+                            badgeRecorrente = `
+                                <span class="badge-recorrente" style="
+                                    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+                                    color: white;
+                                    padding: 1px 4px;
+                                    border-radius: 3px;
+                                    font-size: 8px;
+                                    font-weight: 600;
+                                    margin-left: 2px;
+                                ">
+                                    <i class="fas fa-repeat" style="font-size: 7px;"></i>
+                                </span>
+                            `;
+                        }
+                        
                         return {
                             html: `
                                 <div style="display: flex; align-items: center; gap: 4px; padding: 2px 4px; overflow: hidden;">
@@ -761,7 +782,7 @@ $agendamentosHoje = count($agendamentoModel->getByPeriodo(Auth::id(), date('Y-m-
                                         overflow: hidden;
                                         text-overflow: ellipsis;
                                         color: #1f2937;
-                                    ">${horario} ${titulo}${badgeServico}</span>
+                                    ">${horario} ${titulo}${badgeServico}${badgeRecorrente}</span>
                                 </div>
                             `
                         };
@@ -823,6 +844,9 @@ $agendamentosHoje = count($agendamentoModel->getByPeriodo(Auth::id(), date('Y-m-
          */
         // Função removida - botão já redireciona direto
     </script>
+    
+    <!-- Agendamento Recorrente JS -->
+    <script src="/assets/js/agendamento-recorrente.js"></script>
     
 </body>
 </html>

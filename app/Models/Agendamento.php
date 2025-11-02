@@ -217,6 +217,8 @@ class Agendamento {
                     aluno as description,
                     descricao,
                     tag_servico_id,
+                    serie_id,
+                    is_recorrente,
                     '#3b82f6' as backgroundColor,
                     '#2563eb' as borderColor
                 FROM agendamentos 

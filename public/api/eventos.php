@@ -102,7 +102,9 @@ foreach ($eventos as &$evento) {
         'descricao' => $evento['descricao'] ?? '',
         'tagCliente' => $tagCliente,  // Tag do cliente (Aluno, Paciente, etc)
         'tagServico' => $tagServico,  // Tag do serviço (Mentoria, Consultoria, etc)
-        'fotoCliente' => $fotoCliente // Foto do cliente (300x300px)
+        'fotoCliente' => $fotoCliente, // Foto do cliente (300x300px)
+        'is_recorrente' => (bool)($evento['is_recorrente'] ?? 0), // Se é parte de série
+        'serie_id' => $evento['serie_id'] ?? null // ID da série
     ];
     
     // Remove campos que não são necessários no retorno
