@@ -1,0 +1,21 @@
+<?php
+/**
+ * Configuração SMTP - Exemplo
+ * Autor: Dante Testa (https://dantetesta.com.br)
+ * 
+ * INSTRUÇÕES:
+ * 1. Copie este arquivo para smtp.php
+ * 2. Preencha com suas credenciais SMTP reais
+ * 3. Nunca commite o arquivo smtp.php
+ */
+
+return [
+    'host' => 'smtp.seuservidor.com',      // Host SMTP
+    'port' => 465,                          // Porta (465 para SSL, 587 para TLS)
+    'username' => 'seu@email.com',          // Usuário SMTP
+    'password' => 'sua_senha_smtp',         // Senha SMTP
+    'encryption' => 'ssl',                  // ssl ou tls
+    'from_email' => 'noreply@seusite.com',  // E-mail remetente
+    'from_name' => 'Agenda Master',         // Nome remetente
+    'charset' => 'UTF-8'
+];

@@ -1,0 +1,38 @@
+<?php
+/**
+ * Configurações do Google reCAPTCHA v3 - Exemplo
+ * Autor: Dante Testa (https://dantetesta.com.br)
+ * 
+ * INSTRUÇÕES:
+ * 1. Copie este arquivo para recaptcha.php
+ * 2. Obtenha suas chaves em: https://www.google.com/recaptcha/admin
+ * 3. Substitua as chaves de teste pelas suas chaves reais
+ * 4. Ative o reCAPTCHA alterando 'enabled' para true
+ */
+
+return [
+    // Ativar/Desativar reCAPTCHA
+    'enabled' => false,  // Altere para true após configurar
+    
+    // Versão do reCAPTCHA
+    'version' => 'v3',
+    
+    // Chaves do reCAPTCHA (SUBSTITUA COM SUAS CHAVES!)
+    'site_key' => 'SUA_SITE_KEY_AQUI',
+    'secret_key' => 'SUA_SECRET_KEY_AQUI',
+    
+    // Score mínimo para aprovar (0.0 a 1.0)
+    // 0.0 = bot, 1.0 = humano
+    'min_score' => 0.5,
+    
+    // Páginas que usam reCAPTCHA
+    'pages' => [
+        'login' => true,
+        'register' => true,
+        'reset_password' => true,
+        'contact' => false,
+    ],
+    
+    // Timeout da verificação (segundos)
+    'timeout' => 10,
+];

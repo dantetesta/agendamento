@@ -1,0 +1,59 @@
+# Arquivos de configuração sensíveis
+/config/database.php
+/config/smtp.php
+/config/recaptcha.php
+
+# Arquivos do sistema
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Logs e cache
+/storage/logs/*.log
+/storage/rate_limit/*
+!/storage/logs/.gitkeep
+!/storage/rate_limit/.gitkeep
+
+# Uploads (fotos de usuários)
+/public/uploads/users/*
+!/public/uploads/users/.gitkeep
+
+# Dependências
+/vendor/
+node_modules/
+composer.phar
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.backup
+*_backup.php
+*_old.php
+*.zip
+
+# Arquivos de desenvolvimento
+sync_config.jsonc
+installer.php
+RECAPTCHA_STATUS.md
+RESUMO_PROJETO.md
+
+# Arquivos específicos do projeto
+/public/login_old_backup.php
+/public/login_v2.php
+/public/login_debug.php
+/public/login_simples.php
+/public/test_login.php

@@ -1,0 +1,19 @@
+<?php
+/**
+ * Configuração de Banco de Dados - Exemplo
+ * Autor: Dante Testa (https://dantetesta.com.br)
+ * 
+ * INSTRUÇÕES:
+ * 1. Copie este arquivo para database.php
+ * 2. Preencha com suas credenciais reais
+ * 3. Nunca commite o arquivo database.php
+ */
+
+return [
+    'host' => 'localhost',           // Host do banco de dados
+    'username' => 'seu_usuario',     // Usuário do banco
+    'password' => 'sua_senha',       // Senha do banco
+    'database' => 'seu_banco',       // Nome do banco
+    'charset' => 'utf8mb4',
+    'port' => 3306
+];

@@ -1,0 +1,46 @@
+/**
+ * Fix para reCAPTCHA v3 Badge
+ * Autor: Dante Testa (https://dantetesta.com.br)
+ * Data: 01/11/2025 22:22
+ * 
+ * Badge discreto no canto inferior direito
+ */
+
+/* Badge do reCAPTCHA v3 - Minúsculo e Discreto */
+.grecaptcha-badge {
+    visibility: visible !important;
+    opacity: 0.25 !important;
+    z-index: 9999 !important;
+    position: fixed !important;
+    bottom: 2px !important;
+    right: 2px !important;
+    transform: scale(0.5) !important;
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
+}
+
+/* Hover - fica um pouco mais visível */
+.grecaptcha-badge:hover {
+    opacity: 0.7 !important;
+    transform: scale(0.55) !important;
+}
+
+/* Garante que o iframe dentro do badge funcione */
+.grecaptcha-badge iframe {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Fix para mobile - ainda mais discreto */
+@media (max-width: 768px) {
+    .grecaptcha-badge {
+        bottom: 1px !important;
+        right: 1px !important;
+        transform: scale(0.45) !important;
+        opacity: 0.2 !important;
+    }
+    
+    .grecaptcha-badge:hover {
+        transform: scale(0.5) !important;
+        opacity: 0.6 !important;
+    }
+}

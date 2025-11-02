@@ -1,0 +1,2 @@
+# Bloqueia acesso direto ao diretório storage
+Require all denied

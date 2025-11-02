@@ -1,0 +1,14 @@
+# Proteção do diretório de uploads de clientes
+# Permite apenas acesso a imagens
+
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    Require all granted
+</FilesMatch>
+
+# Bloqueia acesso a outros tipos de arquivo
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+
+# Desabilita listagem de diretório
+Options -Indexes

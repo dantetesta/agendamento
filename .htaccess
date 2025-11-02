@@ -1,0 +1,104 @@
+# ============================================
+# Agenda do Professor Inteligente
+# Autor: Dante Testa (https://dantetesta.com.br)
+# Data: 30/10/2025 16:40
+# ============================================
+
+# Habilitar RewriteEngine
+RewriteEngine On
+RewriteBase /
+
+# ============================================
+# SEGURANÇA
+# ============================================
+
+# Redirecionar para HTTPS (produção)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Bloquear acesso direto a arquivos sensíveis
+<FilesMatch "\.(env|json|log|md|sql|sh|ini|config)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear acesso a diretórios sensíveis
+RewriteRule ^(config|core|app|vendor|storage)/.*$ - [F,L]
+
+# Proteção de diretórios
+Options -Indexes
+
+# Configurações de segurança HTTP
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ============================================
+# ROTAS AMIGÁVEIS (Remove /public da URL)
+# ============================================
+
+# BLOQUEIA acesso direto a arquivos .php em /public
+# Força uso de rotas amigáveis
+RewriteCond %{REQUEST_URI} ^/public/.*\.php$
+RewriteRule ^public/(.*)\.php$ - [F,L]
+
+# Permite acesso a arquivos estáticos em /public
+RewriteCond %{REQUEST_URI} ^/public/(uploads|assets|css|js|images)/
+RewriteRule ^(.*)$ $1 [L]
+
+# Redireciona tudo para index.php (rotas amigáveis)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# ============================================
+# CACHE E PERFORMANCE
+# ============================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# Compressão GZIP
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
+</IfModule>
+
+# ============================================
+# HEADERS DE SEGURANÇA
+# ============================================
+
+<IfModule mod_headers.c>
+    # Previne Clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+    
+    # Previne MIME sniffing
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Ativa proteção XSS do navegador
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Política de referência
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Política de permissões
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    
+    # HSTS - Force HTTPS (descomente se usar HTTPS)
+    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Content Security Policy (CSP)
+    # Configurado para suportar reCAPTCHA v3, FullCalendar e Tailwind CSS
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com; img-src 'self' data: https: https://www.gstatic.com; font-src 'self' data: https://cdnjs.cloudflare.com https://use.typekit.net; connect-src 'self' https://www.google.com https://www.gstatic.com; frame-src https://www.google.com https://www.gstatic.com;"
+</IfModule>

@@ -1,0 +1,23 @@
+{
+    "name": "dantetesta/agenda-professor",
+    "description": "Sistema Inteligente de Agendamento para Professores",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dante Testa",
+            "email": "contato@dantetesta.com.br",
+            "homepage": "https://dantetesta.com.br"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Core\\": "core/"
+        }
+    }
+}
