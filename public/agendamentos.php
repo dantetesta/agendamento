@@ -1689,17 +1689,52 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
     <script src="/assets/js/agendamento-recorrente.js?v=<?= time() ?>"></script>
     
     <script>
-    // Habilita/desabilita campos baseado na opção "Termina em"
-    document.querySelectorAll('input[name="termina"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            document.getElementById('data_fim').disabled = this.value !== 'data';
-            document.getElementById('max_ocorrencias').disabled = this.value !== 'ocorrencias';
-        });
+    // ========================================
+    // TOGGLE RECORRÊNCIA (FALLBACK)
+    // ========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxRepetir = document.getElementById('repetir_agendamento');
+        const containerRecorrencia = document.getElementById('container_recorrencia');
+        
+        console.log('🔧 Inicializando toggle de recorrência...');
+        console.log('Checkbox:', checkboxRepetir);
+        console.log('Container:', containerRecorrencia);
+        
+        if (checkboxRepetir && containerRecorrencia) {
+            // Toggle ao mudar checkbox
+            checkboxRepetir.addEventListener('change', function() {
+                console.log('✅ Checkbox mudou! Checked:', this.checked);
+                
+                if (this.checked) {
+                    containerRecorrencia.classList.remove('hidden');
+                    containerRecorrencia.style.display = 'block';
+                    console.log('👁️ Container MOSTRADO');
+                } else {
+                    containerRecorrencia.classList.add('hidden');
+                    containerRecorrencia.style.display = 'none';
+                    console.log('🙈 Container ESCONDIDO');
+                }
+            });
+            
+            console.log('✅ Event listener adicionado com sucesso!');
+        } else {
+            console.error('❌ Elementos não encontrados!');
+        }
     });
+    
+    // Habilita/desabilita campos baseado na opção "Termina em"
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('input[name="termina"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.getElementById('data_fim').disabled = this.value !== 'data';
+                document.getElementById('max_ocorrencias').disabled = this.value !== 'ocorrencias';
+            });
+        });
 
-    // Inicializa estado dos campos
-    document.getElementById('data_fim').disabled = true;
-    document.getElementById('max_ocorrencias').disabled = true;
+        // Inicializa estado dos campos
+        document.getElementById('data_fim').disabled = true;
+        document.getElementById('max_ocorrencias').disabled = true;
+    });
     </script>
     
 </body>
