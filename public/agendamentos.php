@@ -108,11 +108,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
             
             if ($id) {
+                // EDITAR
                 $agendamentoModel->update($id, $dados);
                 setFlash('success', 'Agendamento atualizado com sucesso!');
             } else {
-                $agendamentoModel->create($dados);
-                setFlash('success', 'Agendamento criado com sucesso!');
+                // CRIAR - Verifica se é recorrente
+                $repetir = isset($_POST['repetir_agendamento']) && $_POST['repetir_agendamento'];
+                
+                if ($repetir) {
+                    // VERSÃO SIMPLES: Repetir a cada X dias, Y vezes
+                    $repetirDias = (int)($_POST['repetir_dias'] ?? 7);
+                    $repetirVezes = (int)($_POST['repetir_vezes'] ?? 10);
+                    
+                    $criados = 0;
+                    $dataAtual = new DateTime($data);
+                    
+                    for ($i = 0; $i < $repetirVezes; $i++) {
+                        $dadosRecorrente = $dados;
+                        $dadosRecorrente['data'] = $dataAtual->format('Y-m-d');
+                        
+                        // Verifica se horário está disponível
+                        if ($agendamentoModel->isHorarioDisponivel(Auth::id(), $dadosRecorrente['data'], $horaInicio, $horaFim)) {
+                            $agendamentoModel->create($dadosRecorrente);
+                            $criados++;
+                        }
+                        
+                        // Adiciona X dias para próxima data
+                        $dataAtual->modify("+{$repetirDias} days");
+                    }
+                    
+                    setFlash('success', "✅ {$criados} agendamentos criados com sucesso!");
+                } else {
+                    // Agendamento único
+                    $agendamentoModel->create($dados);
+                    setFlash('success', 'Agendamento criado com sucesso!');
+                }
             }
             
             redirect('/agendamentos');
@@ -568,214 +598,89 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
                 </div>
                 
                 <!-- ========================================= -->
-                <!-- AGENDAMENTOS RECORRENTES -->
+                <!-- AGENDAMENTOS RECORRENTES - VERSÃO SIMPLES -->
                 <!-- ========================================= -->
                 
                 <!-- Checkbox para ativar recorrência -->
-                <div class="mb-6">
-                    <div class="checkbox-repetir">
+                <div class="mb-4">
+                    <label class="flex items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg cursor-pointer hover:border-blue-400 transition">
                         <input type="checkbox" 
                                id="repetir_agendamento" 
                                name="repetir_agendamento"
-                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <label for="repetir_agendamento">
-                            <i class="fas fa-repeat"></i>
-                            Repetir este agendamento
-                        </label>
-                    </div>
+                               class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 mr-3">
+                        <div>
+                            <div class="font-semibold text-gray-800 flex items-center">
+                                <i class="fas fa-repeat mr-2 text-blue-600"></i>
+                                Repetir este agendamento
+                            </div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                Cria vários agendamentos de uma vez
+                            </div>
+                        </div>
+                    </label>
                 </div>
 
-                <!-- Container de recorrência (inicialmente oculto) -->
-                <div id="container_recorrencia" class="hidden space-y-6 p-6 bg-gray-50 rounded-lg border-2 border-blue-200">
+                <!-- Container de recorrência SIMPLIFICADO -->
+                <div id="container_recorrencia" class="hidden space-y-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
                     
-                    <!-- Tipo de recorrência -->
-                    <div>
-                        <label for="tipo_recorrencia" class="label-com-icone">
-                            <i class="fas fa-calendar-alt"></i>
-                            Tipo de recorrência
-                        </label>
-                        <select id="tipo_recorrencia" 
-                                name="tipo_recorrencia"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="">Selecione...</option>
-                            <option value="diario">Diariamente</option>
-                            <option value="semanal" selected>Semanalmente</option>
-                            <option value="mensal">Mensalmente</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Dias da semana (apenas para tipo semanal) -->
-                    <div id="campo_dias_semana" class="campo-recorrencia">
-                        <label class="label-com-icone">
-                            <i class="fas fa-calendar-week"></i>
-                            Repetir nos dias
-                        </label>
-                        <div class="dias-semana-grid">
-                            <div class="dia-semana-item">
-                                <input type="checkbox" id="dia_1" name="dias_semana[]" value="1">
-                                <label for="dia_1" class="dia-semana-label">
-                                    <span class="dia-semana-abrev">S</span>
-                                    <span class="dia-semana-nome">Seg</span>
+                    <div class="bg-white rounded-lg p-4 border border-blue-200">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-magic mr-2 text-blue-600"></i>
+                            Configure a repetição
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Repetir a cada X dias -->
+                            <div>
+                                <label for="repetir_dias" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-calendar-days mr-1 text-blue-600"></i>
+                                    Repetir a cada quantos dias?
                                 </label>
-                            </div>
-                            <div class="dia-semana-item">
-                                <input type="checkbox" id="dia_2" name="dias_semana[]" value="2">
-                                <label for="dia_2" class="dia-semana-label">
-                                    <span class="dia-semana-abrev">T</span>
-                                    <span class="dia-semana-nome">Ter</span>
-                                </label>
-                            </div>
-                            <div class="dia-semana-item">
-                                <input type="checkbox" id="dia_3" name="dias_semana[]" value="3">
-                                <label for="dia_3" class="dia-semana-label">
-                                    <span class="dia-semana-abrev">Q</span>
-                                    <span class="dia-semana-nome">Qua</span>
-                                </label>
-                            </div>
-                            <div class="dia-semana-item">
-                                <input type="checkbox" id="dia_4" name="dias_semana[]" value="4">
-                                <label for="dia_4" class="dia-semana-label">
-                                    <span class="dia-semana-abrev">Q</span>
-                                    <span class="dia-semana-nome">Qui</span>
-                                </label>
-                            </div>
-                            <div class="dia-semana-item">
-                                <input type="checkbox" id="dia_5" name="dias_semana[]" value="5">
-                                <label for="dia_5" class="dia-semana-label">
-                                    <span class="dia-semana-abrev">S</span>
-                                    <span class="dia-semana-nome">Sex</span>
-                                </label>
-                            </div>
-                            <div class="dia-semana-item">
-                                <input type="checkbox" id="dia_6" name="dias_semana[]" value="6">
-                                <label for="dia_6" class="dia-semana-label">
-                                    <span class="dia-semana-abrev">S</span>
-                                    <span class="dia-semana-nome">Sáb</span>
-                                </label>
-                            </div>
-                            <div class="dia-semana-item">
-                                <input type="checkbox" id="dia_7" name="dias_semana[]" value="7">
-                                <label for="dia_7" class="dia-semana-label">
-                                    <span class="dia-semana-abrev">D</span>
-                                    <span class="dia-semana-nome">Dom</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Dia do mês (apenas para tipo mensal) -->
-                    <div id="campo_dia_mes" class="campo-recorrencia hidden">
-                        <label for="dia_mes" class="label-com-icone">
-                            <i class="fas fa-calendar-day"></i>
-                            Dia do mês
-                        </label>
-                        <select id="dia_mes" 
-                                name="dia_mes"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="">Selecione o dia...</option>
-                            <?php for($i = 1; $i <= 31; $i++): ?>
-                                <option value="<?= $i ?>">Dia <?= $i ?></option>
-                            <?php endfor; ?>
-                        </select>
-                    </div>
-                    
-                    <!-- Intervalo -->
-                    <div id="campo_intervalo" class="campo-recorrencia">
-                        <label for="intervalo" class="label-com-icone">
-                            <i class="fas fa-arrows-rotate"></i>
-                            A cada quantas semanas?
-                        </label>
-                        <input type="number" 
-                               id="intervalo" 
-                               name="intervalo"
-                               min="1" 
-                               max="12" 
-                               value="1"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent input-recorrencia">
-                        <p class="text-sm text-gray-500 mt-1">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            1 = toda semana, 2 = quinzenal, 3 = a cada 3 semanas, etc
-                        </p>
-                    </div>
-                    
-                    <!-- Data de início -->
-                    <div>
-                        <label for="data_inicio" class="label-com-icone">
-                            <i class="fas fa-calendar-plus"></i>
-                            Data de início
-                        </label>
-                        <input type="date" 
-                               id="data_inicio" 
-                               name="data_inicio"
-                               min="<?= date('Y-m-d') ?>"
-                               value="<?= date('Y-m-d') ?>"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                    
-                    <!-- Termina em -->
-                    <div>
-                        <label class="label-com-icone">
-                            <i class="fas fa-calendar-xmark"></i>
-                            Termina em
-                        </label>
-                        <div class="termina-opcoes">
-                            <div class="termina-opcao">
-                                <input type="radio" 
-                                       id="termina_nunca" 
-                                       name="termina" 
-                                       value="nunca" 
-                                       checked
-                                       class="mr-3">
-                                <label for="termina_nunca" class="flex-1 cursor-pointer">
-                                    Nunca (continua indefinidamente)
-                                </label>
+                                <select id="repetir_dias" 
+                                        name="repetir_dias"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg font-semibold">
+                                    <option value="1">1 dia (todo dia)</option>
+                                    <option value="2">2 dias</option>
+                                    <option value="3">3 dias</option>
+                                    <option value="7" selected>7 dias (toda semana)</option>
+                                    <option value="14">14 dias (quinzenal)</option>
+                                    <option value="30">30 dias (todo mês)</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Escolha o intervalo entre cada agendamento
+                                </p>
                             </div>
                             
-                            <div class="termina-opcao">
-                                <input type="radio" 
-                                       id="termina_data" 
-                                       name="termina" 
-                                       value="data"
-                                       class="mr-3">
-                                <label for="termina_data" class="flex-1 cursor-pointer">
-                                    Em uma data específica
-                                </label>
-                                <input type="date" 
-                                       id="data_fim" 
-                                       name="data_fim"
-                                       min="<?= date('Y-m-d') ?>"
-                                       class="ml-3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            
-                            <div class="termina-opcao">
-                                <input type="radio" 
-                                       id="termina_ocorrencias" 
-                                       name="termina" 
-                                       value="ocorrencias"
-                                       class="mr-3">
-                                <label for="termina_ocorrencias" class="flex-1 cursor-pointer">
-                                    Após
+                            <!-- Quantas vezes -->
+                            <div>
+                                <label for="repetir_vezes" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-hashtag mr-1 text-blue-600"></i>
+                                    Quantas vezes repetir?
                                 </label>
                                 <input type="number" 
-                                       id="max_ocorrencias" 
-                                       name="max_ocorrencias"
-                                       min="1" 
-                                       max="100" 
+                                       id="repetir_vezes" 
+                                       name="repetir_vezes"
+                                       min="2" 
+                                       max="52" 
                                        value="10"
-                                       class="ml-3 w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center">
-                                <span class="ml-2">ocorrências</span>
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg font-semibold text-center">
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Número total de agendamentos a criar
+                                </p>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Preview de datas -->
-                    <div>
-                        <label class="label-com-icone">
-                            <i class="fas fa-eye"></i>
-                            Preview das próximas datas
-                        </label>
-                        <div id="preview_datas" class="min-h-[100px]">
-                            <!-- Preview será inserido aqui via JavaScript -->
+                        
+                        <!-- Preview automático -->
+                        <div id="preview_simples" class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <p class="text-sm font-semibold text-blue-900 mb-2">
+                                <i class="fas fa-eye mr-1"></i>
+                                Preview:
+                            </p>
+                            <p id="preview_texto" class="text-sm text-blue-800">
+                                Serão criados <strong>10 agendamentos</strong>, um a cada <strong>7 dias</strong>
+                            </p>
                         </div>
                     </div>
                     
@@ -1690,50 +1595,51 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
     
     <script>
     // ========================================
-    // TOGGLE RECORRÊNCIA (FALLBACK)
+    // AGENDAMENTOS RECORRENTES - VERSÃO SIMPLES
     // ========================================
     document.addEventListener('DOMContentLoaded', function() {
         const checkboxRepetir = document.getElementById('repetir_agendamento');
         const containerRecorrencia = document.getElementById('container_recorrencia');
+        const selectDias = document.getElementById('repetir_dias');
+        const inputVezes = document.getElementById('repetir_vezes');
+        const previewTexto = document.getElementById('preview_texto');
         
-        console.log('🔧 Inicializando toggle de recorrência...');
-        console.log('Checkbox:', checkboxRepetir);
-        console.log('Container:', containerRecorrencia);
-        
+        // Toggle ao marcar checkbox
         if (checkboxRepetir && containerRecorrencia) {
-            // Toggle ao mudar checkbox
             checkboxRepetir.addEventListener('change', function() {
-                console.log('✅ Checkbox mudou! Checked:', this.checked);
-                
                 if (this.checked) {
                     containerRecorrencia.classList.remove('hidden');
-                    containerRecorrencia.style.display = 'block';
-                    console.log('👁️ Container MOSTRADO');
+                    atualizarPreview();
                 } else {
                     containerRecorrencia.classList.add('hidden');
-                    containerRecorrencia.style.display = 'none';
-                    console.log('🙈 Container ESCONDIDO');
                 }
             });
-            
-            console.log('✅ Event listener adicionado com sucesso!');
-        } else {
-            console.error('❌ Elementos não encontrados!');
         }
-    });
-    
-    // Habilita/desabilita campos baseado na opção "Termina em"
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('input[name="termina"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                document.getElementById('data_fim').disabled = this.value !== 'data';
-                document.getElementById('max_ocorrencias').disabled = this.value !== 'ocorrencias';
-            });
-        });
-
-        // Inicializa estado dos campos
-        document.getElementById('data_fim').disabled = true;
-        document.getElementById('max_ocorrencias').disabled = true;
+        
+        // Atualiza preview ao mudar valores
+        function atualizarPreview() {
+            const dias = selectDias ? selectDias.value : 7;
+            const vezes = inputVezes ? inputVezes.value : 10;
+            
+            let intervalo = '';
+            if (dias == 1) intervalo = 'todo dia';
+            else if (dias == 7) intervalo = 'toda semana';
+            else if (dias == 14) intervalo = 'quinzenalmente';
+            else if (dias == 30) intervalo = 'todo mês';
+            else intervalo = `a cada ${dias} dias`;
+            
+            if (previewTexto) {
+                previewTexto.innerHTML = `Serão criados <strong>${vezes} agendamentos</strong>, um ${intervalo}`;
+            }
+        }
+        
+        // Atualiza preview ao mudar campos
+        if (selectDias) {
+            selectDias.addEventListener('change', atualizarPreview);
+        }
+        if (inputVezes) {
+            inputVezes.addEventListener('input', atualizarPreview);
+        }
     });
     </script>
     
