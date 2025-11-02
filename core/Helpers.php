@@ -116,6 +116,29 @@ function setFlash($key, $message) {
 }
 
 /**
+ * Verifica se existe mensagem flash
+ */
+function hasFlash($key) {
+    Auth::startSession();
+    return isset($_SESSION['flash'][$key]);
+}
+
+/**
+ * Retorna e remove mensagem flash
+ */
+function getFlash($key) {
+    Auth::startSession();
+    
+    if (isset($_SESSION['flash'][$key])) {
+        $message = $_SESSION['flash'][$key];
+        unset($_SESSION['flash'][$key]);
+        return $message;
+    }
+    
+    return null;
+}
+
+/**
  * Retorna valor antigo de input (após erro de validação)
  */
 function old($key, $default = '') {
