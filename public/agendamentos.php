@@ -42,6 +42,9 @@ foreach ($disponibilidades as $disp) {
 // Busca tags de SERVIÇO (para classificar tipos de atendimento)
 $tagsServico = $tagModel->getByCategoria('servico');
 
+// Busca todos os clientes para autocomplete (deletar por cliente)
+$todosClientes = $clienteModel->findByProfessor(Auth::id(), 'ativo');
+
 // Busca todos os agendamentos futuros para validação de conflitos
 $agendamentosExistentes = $agendamentoModel->getByProfessor(Auth::id());
 $agendamentosPorData = [];
@@ -1963,6 +1966,15 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
         return confirm(`⚠️ TEM CERTEZA?\n\nTodos os agendamentos de "${clienteNome}" serão DELETADOS permanentemente!\n\nEsta ação NÃO pode ser desfeita!`);
     }
     
+    // ========================================
+    // AUTOCOMPLETE LOCAL (SEM API)
+    // ========================================
+    
+    // Lista de clientes carregada do PHP
+    const todosClientesData = <?= json_encode($todosClientes) ?>;
+    
+    console.log('📋 Clientes carregados:', todosClientesData.length);
+    
     // Autocomplete para deletar por cliente
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🔧 Inicializando autocomplete de clientes...');
@@ -1984,7 +1996,7 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
         
         inputDeletar.addEventListener('input', function() {
             clearTimeout(timeoutId);
-            const query = this.value.trim();
+            const query = this.value.trim().toLowerCase();
             
             console.log('📝 Digitado:', query, '| Tamanho:', query.length);
             
@@ -1994,74 +2006,59 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
                 return;
             }
             
-            console.log('🔍 Buscando clientes com query:', query);
+            console.log('🔍 Buscando clientes localmente com query:', query);
             
             timeoutId = setTimeout(() => {
-                const url = `/api/clientes_buscar.php?q=${encodeURIComponent(query)}`;
-                console.log('🌐 URL:', url);
+                // Busca local nos dados carregados
+                const clientesFiltrados = todosClientesData.filter(cliente => {
+                    return cliente.nome.toLowerCase().includes(query) ||
+                           (cliente.email && cliente.email.toLowerCase().includes(query)) ||
+                           (cliente.telefone && cliente.telefone.includes(query));
+                });
                 
-                fetch(url)
-                    .then(response => {
-                        console.log('📡 Response status:', response.status);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('📦 Dados recebidos:', data);
-                        
-                        // A API retorna array direto, não objeto com success
-                        if (Array.isArray(data) && data.length > 0) {
-                            console.log('✅ Clientes encontrados:', data.length);
-                            let html = '';
-                            
-                            data.forEach(cliente => {
-                                console.log('👤 Cliente:', cliente);
-                                html += `
-                                    <div class="suggestion-item-deletar p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-0"
-                                         onclick="selecionarClienteDeletar(${cliente.id}, '${cliente.nome.replace(/'/g, "\\'")}', '${(cliente.email || '').replace(/'/g, "\\'")}')">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <i class="fas fa-user text-orange-600"></i>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="font-semibold text-gray-900 truncate">${cliente.nome}</p>
-                                                <p class="text-xs text-gray-500 truncate">
-                                                    <i class="fas fa-envelope mr-1"></i>${cliente.email || 'Sem email'}
-                                                </p>
-                                                <p class="text-xs text-gray-400">
-                                                    <i class="fas fa-hashtag mr-1"></i>ID: ${cliente.id}
-                                                </p>
-                                            </div>
-                                        </div>
+                console.log('📦 Clientes filtrados:', clientesFiltrados.length);
+                
+                if (clientesFiltrados.length > 0) {
+                    console.log('✅ Clientes encontrados:', clientesFiltrados.length);
+                    let html = '';
+                    
+                    clientesFiltrados.slice(0, 10).forEach(cliente => {
+                        console.log('👤 Cliente:', cliente);
+                        html += `
+                            <div class="suggestion-item-deletar p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-0"
+                                 onclick="selecionarClienteDeletar(${cliente.id}, '${cliente.nome.replace(/'/g, "\\'")}', '${(cliente.email || '').replace(/'/g, "\\'")}')">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-user text-orange-600"></i>
                                     </div>
-                                `;
-                            });
-                            
-                            suggestionsDeletar.innerHTML = html;
-                            suggestionsDeletar.classList.remove('hidden');
-                            console.log('👁️ Sugestões mostradas!');
-                        } else {
-                            console.log('⚠️ Nenhum cliente encontrado');
-                            suggestionsDeletar.innerHTML = `
-                                <div class="p-4 text-center text-gray-500">
-                                    <i class="fas fa-search text-2xl mb-2"></i>
-                                    <p class="text-sm">Nenhum cliente encontrado</p>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-semibold text-gray-900 truncate">${cliente.nome}</p>
+                                        <p class="text-xs text-gray-500 truncate">
+                                            <i class="fas fa-envelope mr-1"></i>${cliente.email || 'Sem email'}
+                                        </p>
+                                        <p class="text-xs text-gray-400">
+                                            <i class="fas fa-hashtag mr-1"></i>ID: ${cliente.id}
+                                        </p>
+                                    </div>
                                 </div>
-                            `;
-                            suggestionsDeletar.classList.remove('hidden');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('❌ Erro ao buscar clientes:', error);
-                        suggestionsDeletar.innerHTML = `
-                            <div class="p-4 text-center text-red-500">
-                                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                                <p class="text-sm">Erro ao buscar clientes</p>
-                                <p class="text-xs mt-1">${error.message}</p>
                             </div>
                         `;
-                        suggestionsDeletar.classList.remove('hidden');
                     });
-            }, 300);
+                    
+                    suggestionsDeletar.innerHTML = html;
+                    suggestionsDeletar.classList.remove('hidden');
+                    console.log('👁️ Sugestões mostradas!');
+                } else {
+                    console.log('⚠️ Nenhum cliente encontrado');
+                    suggestionsDeletar.innerHTML = `
+                        <div class="p-4 text-center text-gray-500">
+                            <i class="fas fa-search text-2xl mb-2"></i>
+                            <p class="text-sm">Nenhum cliente encontrado</p>
+                        </div>
+                    `;
+                    suggestionsDeletar.classList.remove('hidden');
+                }
+            }, 150);
         });
         
         // Fecha sugestões ao clicar fora
