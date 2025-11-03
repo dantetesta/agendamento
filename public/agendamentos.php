@@ -1997,7 +1997,7 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
             console.log('🔍 Buscando clientes com query:', query);
             
             timeoutId = setTimeout(() => {
-                const url = `/api/clientes-buscar.php?q=${encodeURIComponent(query)}`;
+                const url = `/api/clientes_buscar.php?q=${encodeURIComponent(query)}`;
                 console.log('🌐 URL:', url);
                 
                 fetch(url)
@@ -2008,11 +2008,12 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
                     .then(data => {
                         console.log('📦 Dados recebidos:', data);
                         
-                        if (data.success && data.clientes && data.clientes.length > 0) {
-                            console.log('✅ Clientes encontrados:', data.clientes.length);
+                        // A API retorna array direto, não objeto com success
+                        if (Array.isArray(data) && data.length > 0) {
+                            console.log('✅ Clientes encontrados:', data.length);
                             let html = '';
                             
-                            data.clientes.forEach(cliente => {
+                            data.forEach(cliente => {
                                 console.log('👤 Cliente:', cliente);
                                 html += `
                                     <div class="suggestion-item-deletar p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-0"
