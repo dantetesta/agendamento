@@ -193,22 +193,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Deletar todos de um cliente
     if (isset($_POST['deletar_por_cliente'])) {
-        $clienteNome = $_POST['cliente_nome'] ?? '';
+        $clienteId = (int)($_POST['cliente_id'] ?? 0);
         
-        if (!empty($clienteNome)) {
-            $todosAgendamentos = $agendamentoModel->getByProfessor(Auth::id());
-            $deletados = 0;
+        if ($clienteId > 0) {
+            // Busca nome do cliente para mensagem
+            $cliente = $clienteModel->findById($clienteId);
             
-            foreach ($todosAgendamentos as $agendamento) {
-                if (strcasecmp($agendamento['aluno'], $clienteNome) === 0) {
-                    $agendamentoModel->delete($agendamento['id']);
-                    $deletados++;
+            if ($cliente) {
+                $todosAgendamentos = $agendamentoModel->getByProfessor(Auth::id());
+                $deletados = 0;
+                
+                foreach ($todosAgendamentos as $agendamento) {
+                    // Compara por cliente_id se existir, senão por nome
+                    $match = false;
+                    
+                    if (!empty($agendamento['cliente_id']) && $agendamento['cliente_id'] == $clienteId) {
+                        $match = true;
+                    } elseif (empty($agendamento['cliente_id']) && strcasecmp($agendamento['aluno'], $cliente['nome']) === 0) {
+                        $match = true;
+                    }
+                    
+                    if ($match) {
+                        $agendamentoModel->delete($agendamento['id']);
+                        $deletados++;
+                    }
                 }
+                
+                setFlash('success', "✅ {$deletados} agendamento(s) de '{$cliente['nome']}' excluído(s) com sucesso!");
+            } else {
+                setFlash('error', 'Cliente não encontrado.');
             }
-            
-            setFlash('success', "✅ {$deletados} agendamento(s) de '{$clienteNome}' excluído(s) com sucesso!");
         } else {
-            setFlash('error', 'Nome do cliente não informado.');
+            setFlash('error', 'Cliente não selecionado.');
         }
         
         redirect('/agendamentos');
@@ -1697,23 +1713,50 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
                     Deletar por Cliente
                 </h3>
                 
-                <p class="text-gray-600 mb-4">
-                    Digite o nome do cliente para deletar <strong>todos</strong> os agendamentos dele:
-                </p>
+                <div class="bg-red-50 border-l-4 border-red-500 p-3 mb-4 rounded">
+                    <p class="text-sm text-red-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>ATENÇÃO:</strong> Todos os agendamentos do cliente selecionado serão deletados permanentemente!
+                    </p>
+                </div>
                 
-                <form method="POST" onsubmit="return confirm('⚠️ TEM CERTEZA? Todos os agendamentos deste cliente serão DELETADOS permanentemente!')">
+                <form method="POST" id="form_deletar_cliente" onsubmit="return confirmarDeletarCliente()">
                     <input type="hidden" name="deletar_por_cliente" value="1">
+                    <input type="hidden" name="cliente_id" id="cliente_id_deletar">
                     
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Nome do Cliente
+                            <i class="fas fa-search mr-1"></i>
+                            Buscar Cliente
                         </label>
-                        <input type="text" 
-                               name="cliente_nome" 
-                               id="input_cliente_deletar"
-                               required
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                               placeholder="Digite o nome exato do cliente...">
+                        <div class="relative">
+                            <input type="text" 
+                                   id="input_cliente_deletar"
+                                   autocomplete="off"
+                                   required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                                   placeholder="Digite para buscar...">
+                            <div id="suggestions_deletar" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Cliente Selecionado -->
+                    <div id="cliente_selecionado" class="hidden mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                        <p class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-check-circle text-green-600 mr-1"></i>
+                            Cliente Selecionado:
+                        </p>
+                        <div class="space-y-1">
+                            <p class="text-sm">
+                                <strong>ID:</strong> <span id="cliente_id_display"></span>
+                            </p>
+                            <p class="text-sm">
+                                <strong>Nome:</strong> <span id="cliente_nome_display"></span>
+                            </p>
+                            <p class="text-sm">
+                                <strong>Email:</strong> <span id="cliente_email_display"></span>
+                            </p>
+                        </div>
                     </div>
                     
                     <div class="flex justify-end space-x-3">
@@ -1723,7 +1766,9 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
                             Cancelar
                         </button>
                         <button type="submit"
-                                class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition">
+                                id="btn_confirmar_deletar"
+                                disabled
+                                class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
                             <i class="fas fa-trash mr-2"></i>
                             Deletar Todos
                         </button>
@@ -1876,13 +1921,25 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
         }
     }
     
-    // Modal deletar por cliente
+    // ========================================
+    // MODAL DELETAR POR CLIENTE COM AUTOCOMPLETE
+    // ========================================
     function abrirModalDeletarPorCliente() {
         const modal = document.getElementById('modal_deletar_cliente');
         if (modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            document.getElementById('input_cliente_deletar').focus();
+            
+            // Limpa campos
+            document.getElementById('input_cliente_deletar').value = '';
+            document.getElementById('cliente_id_deletar').value = '';
+            document.getElementById('cliente_selecionado').classList.add('hidden');
+            document.getElementById('btn_confirmar_deletar').disabled = true;
+            
+            // Foca no input
+            setTimeout(() => {
+                document.getElementById('input_cliente_deletar').focus();
+            }, 100);
         }
     }
     
@@ -1892,6 +1949,111 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }
+    }
+    
+    function confirmarDeletarCliente() {
+        const clienteId = document.getElementById('cliente_id_deletar').value;
+        const clienteNome = document.getElementById('cliente_nome_display').textContent;
+        
+        if (!clienteId) {
+            alert('⚠️ Selecione um cliente primeiro!');
+            return false;
+        }
+        
+        return confirm(`⚠️ TEM CERTEZA?\n\nTodos os agendamentos de "${clienteNome}" serão DELETADOS permanentemente!\n\nEsta ação NÃO pode ser desfeita!`);
+    }
+    
+    // Autocomplete para deletar por cliente
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputDeletar = document.getElementById('input_cliente_deletar');
+        const suggestionsDeletar = document.getElementById('suggestions_deletar');
+        
+        if (!inputDeletar || !suggestionsDeletar) return;
+        
+        let timeoutId;
+        
+        inputDeletar.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                suggestionsDeletar.classList.add('hidden');
+                return;
+            }
+            
+            timeoutId = setTimeout(() => {
+                fetch(`/api/clientes-buscar.php?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.clientes.length > 0) {
+                            let html = '';
+                            
+                            data.clientes.forEach(cliente => {
+                                html += `
+                                    <div class="suggestion-item-deletar p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-0"
+                                         onclick="selecionarClienteDeletar(${cliente.id}, '${cliente.nome.replace(/'/g, "\\'")}', '${(cliente.email || '').replace(/'/g, "\\'")}')">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <i class="fas fa-user text-orange-600"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-semibold text-gray-900 truncate">${cliente.nome}</p>
+                                                <p class="text-xs text-gray-500 truncate">
+                                                    <i class="fas fa-envelope mr-1"></i>${cliente.email || 'Sem email'}
+                                                </p>
+                                                <p class="text-xs text-gray-400">
+                                                    <i class="fas fa-hashtag mr-1"></i>ID: ${cliente.id}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            
+                            suggestionsDeletar.innerHTML = html;
+                            suggestionsDeletar.classList.remove('hidden');
+                        } else {
+                            suggestionsDeletar.innerHTML = `
+                                <div class="p-4 text-center text-gray-500">
+                                    <i class="fas fa-search text-2xl mb-2"></i>
+                                    <p class="text-sm">Nenhum cliente encontrado</p>
+                                </div>
+                            `;
+                            suggestionsDeletar.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar clientes:', error);
+                    });
+            }, 300);
+        });
+        
+        // Fecha sugestões ao clicar fora
+        document.addEventListener('click', function(e) {
+            if (!inputDeletar.contains(e.target) && !suggestionsDeletar.contains(e.target)) {
+                suggestionsDeletar.classList.add('hidden');
+            }
+        });
+    });
+    
+    function selecionarClienteDeletar(id, nome, email) {
+        // Preenche campos hidden
+        document.getElementById('cliente_id_deletar').value = id;
+        
+        // Preenche input visível
+        document.getElementById('input_cliente_deletar').value = nome;
+        
+        // Mostra card com dados do cliente
+        document.getElementById('cliente_id_display').textContent = id;
+        document.getElementById('cliente_nome_display').textContent = nome;
+        document.getElementById('cliente_email_display').textContent = email || 'Não informado';
+        document.getElementById('cliente_selecionado').classList.remove('hidden');
+        
+        // Habilita botão
+        document.getElementById('btn_confirmar_deletar').disabled = false;
+        
+        // Esconde sugestões
+        document.getElementById('suggestions_deletar').classList.add('hidden');
     }
     </script>
     
