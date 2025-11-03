@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Deletar agendamento
+    // Deletar agendamento único
     if (isset($_POST['deletar'])) {
         $id = $_POST['id'] ?? null;
         
@@ -162,6 +162,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 setFlash('error', 'Agendamento não encontrado.');
             }
+        }
+        
+        redirect('/agendamentos');
+    }
+    
+    // Deletar múltiplos agendamentos
+    if (isset($_POST['deletar_multiplos'])) {
+        $ids = $_POST['agendamentos_ids'] ?? [];
+        
+        if (!empty($ids) && is_array($ids)) {
+            $deletados = 0;
+            
+            foreach ($ids as $id) {
+                $agendamento = $agendamentoModel->findById($id);
+                
+                if ($agendamento && $agendamento['professor_id'] == Auth::id()) {
+                    $agendamentoModel->delete($id);
+                    $deletados++;
+                }
+            }
+            
+            setFlash('success', "✅ {$deletados} agendamento(s) excluído(s) com sucesso!");
+        } else {
+            setFlash('error', 'Nenhum agendamento selecionado.');
+        }
+        
+        redirect('/agendamentos');
+    }
+    
+    // Deletar todos de um cliente
+    if (isset($_POST['deletar_por_cliente'])) {
+        $clienteNome = $_POST['cliente_nome'] ?? '';
+        
+        if (!empty($clienteNome)) {
+            $todosAgendamentos = $agendamentoModel->getByProfessor(Auth::id());
+            $deletados = 0;
+            
+            foreach ($todosAgendamentos as $agendamento) {
+                if (strcasecmp($agendamento['aluno'], $clienteNome) === 0) {
+                    $agendamentoModel->delete($agendamento['id']);
+                    $deletados++;
+                }
+            }
+            
+            setFlash('success', "✅ {$deletados} agendamento(s) de '{$clienteNome}' excluído(s) com sucesso!");
+        } else {
+            setFlash('error', 'Nome do cliente não informado.');
         }
         
         redirect('/agendamentos');
@@ -240,17 +287,62 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
                             <span class="xs:hidden">Agenda</span>
                         </h2>
                     </div>
-                    <button onclick="toggleModal()" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center">
-                        <i class="fas fa-plus"></i>
-                        <span class="ml-2 hidden sm:inline">Novo Agendamento</span>
-                        <span class="ml-2 sm:hidden">Novo</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleModal()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center">
+                            <i class="fas fa-plus"></i>
+                            <span class="ml-2 hidden sm:inline">Novo Agendamento</span>
+                            <span class="ml-2 sm:hidden">Novo</span>
+                        </button>
+                        
+                        <!-- Botão Deletar Selecionados (inicialmente oculto) -->
+                        <button id="btn_deletar_selecionados" 
+                                onclick="deletarSelecionados()" 
+                                class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center">
+                            <i class="fas fa-trash"></i>
+                            <span class="ml-2 hidden sm:inline">Deletar Selecionados</span>
+                            <span class="ml-2 sm:hidden">Deletar</span>
+                        </button>
+                    </div>
                 </div>
             </header>
             
             <!-- Conteúdo -->
             <div class="p-6 space-y-6">
+                
+                <!-- Barra de Ações em Massa -->
+                <div id="barra_acoes_massa" class="hidden bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-lg p-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" 
+                                   id="selecionar_todos" 
+                                   onchange="selecionarTodos(this.checked)"
+                                   class="w-5 h-5 text-red-600 rounded focus:ring-red-500">
+                            <label for="selecionar_todos" class="font-semibold text-gray-800 cursor-pointer">
+                                Selecionar todos
+                            </label>
+                            <span id="contador_selecionados" class="text-sm text-gray-600 ml-2">
+                                (0 selecionados)
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <!-- Deletar por Cliente -->
+                            <button onclick="abrirModalDeletarPorCliente()" 
+                                    class="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center text-sm">
+                                <i class="fas fa-user-xmark mr-2"></i>
+                                Deletar por Cliente
+                            </button>
+                            
+                            <!-- Deletar Selecionados -->
+                            <button onclick="deletarSelecionados()" 
+                                    class="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center text-sm">
+                                <i class="fas fa-trash mr-2"></i>
+                                Deletar Selecionados
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Mensagens -->
                 <?php if (!empty($errors)): ?>
@@ -316,7 +408,13 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
                                     <?php foreach ($agendamentos as $agendamento): ?>
                                         <tr class="hover:bg-gray-50">
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="flex items-center gap-2">
+                                                <div class="flex items-center gap-3">
+                                                    <!-- Checkbox para seleção -->
+                                                    <input type="checkbox" 
+                                                           class="checkbox-agendamento w-5 h-5 text-red-600 rounded focus:ring-red-500" 
+                                                           value="<?= $agendamento['id'] ?>"
+                                                           onchange="toggleAgendamento(this)">
+                                                    
                                                     <?php 
                                                     // Busca tag e foto do cliente
                                                     $tagCliente = null;
@@ -1590,6 +1688,51 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
         });
     </script>
     
+    <!-- Modal Deletar por Cliente -->
+    <div id="modal_deletar_cliente" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-user-xmark mr-2 text-orange-600"></i>
+                    Deletar por Cliente
+                </h3>
+                
+                <p class="text-gray-600 mb-4">
+                    Digite o nome do cliente para deletar <strong>todos</strong> os agendamentos dele:
+                </p>
+                
+                <form method="POST" onsubmit="return confirm('⚠️ TEM CERTEZA? Todos os agendamentos deste cliente serão DELETADOS permanentemente!')">
+                    <input type="hidden" name="deletar_por_cliente" value="1">
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Nome do Cliente
+                        </label>
+                        <input type="text" 
+                               name="cliente_nome" 
+                               id="input_cliente_deletar"
+                               required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                               placeholder="Digite o nome exato do cliente...">
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" 
+                                onclick="fecharModalDeletarCliente()"
+                                class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition">
+                            <i class="fas fa-trash mr-2"></i>
+                            Deletar Todos
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <!-- Agendamento Recorrente JS -->
     <script src="/assets/js/agendamento-recorrente.js?v=<?= time() ?>"></script>
     
@@ -1641,6 +1784,115 @@ $agendamentos = $agendamentoModel->getByProfessor(Auth::id());
             inputVezes.addEventListener('input', atualizarPreview);
         }
     });
+    
+    // ========================================
+    // EXCLUSÃO EM MASSA
+    // ========================================
+    let agendamentosSelecionados = new Set();
+    
+    // Mostra barra de ações quando página carrega
+    document.addEventListener('DOMContentLoaded', function() {
+        const barra = document.getElementById('barra_acoes_massa');
+        if (barra) {
+            barra.classList.remove('hidden');
+        }
+    });
+    
+    // Selecionar/Desselecionar todos
+    function selecionarTodos(checked) {
+        const checkboxes = document.querySelectorAll('.checkbox-agendamento');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+            if (checked) {
+                agendamentosSelecionados.add(checkbox.value);
+            } else {
+                agendamentosSelecionados.delete(checkbox.value);
+            }
+        });
+        atualizarContadorSelecionados();
+    }
+    
+    // Atualiza checkbox individual
+    function toggleAgendamento(checkbox) {
+        if (checkbox.checked) {
+            agendamentosSelecionados.add(checkbox.value);
+        } else {
+            agendamentosSelecionados.delete(checkbox.value);
+        }
+        atualizarContadorSelecionados();
+    }
+    
+    // Atualiza contador
+    function atualizarContadorSelecionados() {
+        const contador = document.getElementById('contador_selecionados');
+        const total = agendamentosSelecionados.size;
+        
+        if (contador) {
+            contador.textContent = `(${total} selecionado${total !== 1 ? 's' : ''})`;
+        }
+        
+        // Atualiza checkbox "selecionar todos"
+        const checkboxTodos = document.getElementById('selecionar_todos');
+        const todosCheckboxes = document.querySelectorAll('.checkbox-agendamento');
+        if (checkboxTodos && todosCheckboxes.length > 0) {
+            checkboxTodos.checked = (total === todosCheckboxes.length);
+        }
+    }
+    
+    // Deletar selecionados
+    function deletarSelecionados() {
+        if (agendamentosSelecionados.size === 0) {
+            alert('⚠️ Nenhum agendamento selecionado!');
+            return;
+        }
+        
+        const total = agendamentosSelecionados.size;
+        const confirmar = confirm(`⚠️ TEM CERTEZA?\n\n${total} agendamento(s) será(ão) DELETADO(S) permanentemente!`);
+        
+        if (confirmar) {
+            // Cria formulário e envia
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            // Campo hidden para ação
+            const inputAcao = document.createElement('input');
+            inputAcao.type = 'hidden';
+            inputAcao.name = 'deletar_multiplos';
+            inputAcao.value = '1';
+            form.appendChild(inputAcao);
+            
+            // Adiciona IDs selecionados
+            agendamentosSelecionados.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'agendamentos_ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+    
+    // Modal deletar por cliente
+    function abrirModalDeletarPorCliente() {
+        const modal = document.getElementById('modal_deletar_cliente');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.getElementById('input_cliente_deletar').focus();
+        }
+    }
+    
+    function fecharModalDeletarCliente() {
+        const modal = document.getElementById('modal_deletar_cliente');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
     </script>
     
 </body>
